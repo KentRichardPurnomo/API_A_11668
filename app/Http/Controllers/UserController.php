@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function register(Request $request){
+    public function register(Request $request)
+    {
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -25,7 +26,7 @@ class UserController extends Controller
         return response()->json([
             'user' => $user,
             'message' => 'User registered successfully'
-        ],201);
+        ], 201);
     }
 
     public function login(Request $request)
@@ -35,12 +36,12 @@ class UserController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email',$request->email)->first();
+        $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
-        
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -51,8 +52,54 @@ class UserController extends Controller
 
     public function logout(Request $request)
     {
-    $request->user()->currentAccessToken()->delete();
-    
-    return response()->json(['message' => 'Successfully logged out'], 200);
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json(['message' => 'Berhasil Logout'], 200);
+    }
+
+    public function index()
+    {
+        $allUser = User::all();
+        return response()->json($allUser);
+    }
+
+
+    public function update(Request $request, $id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $id,
+            'password' => 'nullable|string|min:8',  
+        ]);
+
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => $request->password ? Hash::make($request->password) : $user->password,
+        ]);
+
+        return response()->json([
+            'message' => 'User updated successfully',
+            'user' => $user,
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        $user->delete();
+
+        return response()->json(['message' => 'Berhasil Mengahpus User']);
     }
 }
